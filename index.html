@@ -2,7 +2,6 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <!-- السطر ده هو اللي بيخلي الصفحة Responsive وتتظبط على الموبايل -->
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Fady Nady - Audio Portfolio</title>
   <style>
@@ -45,10 +44,9 @@
 
     .loading { text-align: center; color: #888; font-size: 15px; padding: 40px; grid-column: 1 / -1; }
 
-    /* تعديلات مخصصة للشاشات الصغيرة */
     @media (max-width: 600px) {
       body { padding: 10px; }
-      .projects-grid { grid-template-columns: 1fr; } /* كارت واحد في الصف للموبايل */
+      .projects-grid { grid-template-columns: 1fr; }
       .tab-btn { font-size: 13px; padding: 8px 12px; }
     }
   </style>
@@ -83,6 +81,7 @@
 
   let currentProjects = [];
   let currentTags = new Set();
+  let currentRequestId = 0; // يمنع تداخل الطلبات السريعة
 
   function getYouTubeEmbedUrl(url) {
     if (!url) return null;
@@ -113,15 +112,21 @@
   }
 
   async function loadData(sourceKey) {
+    const requestId = ++currentRequestId;
     const grid = document.getElementById('projects-grid');
     const btnContainer = document.getElementById('filter-buttons');
+    
     grid.innerHTML = '<div class="loading">Loading projects...</div>';
-    btnContainer.innerHTML = '';
+    btnContainer.innerHTML = ''; // تفريغ كامل لمنع التكرار
     currentTags.clear();
 
     try {
       const response = await fetch(SOURCES[sourceKey]);
       const csvText = await response.text();
+      
+      // لو المستخدم داس على زرار تاني قبل ما ده يخلص، نلغي القديم
+      if (requestId !== currentRequestId) return;
+
       currentProjects = parseCSV(csvText);
 
       currentProjects.forEach(project => {
@@ -133,7 +138,9 @@
       renderFilterButtons();
       renderProjects(currentProjects);
     } catch (error) {
-      grid.innerHTML = '<div class="loading">Error loading data.</div>';
+      if (requestId === currentRequestId) {
+        grid.innerHTML = '<div class="loading">Error loading data.</div>';
+      }
     }
   }
 
@@ -145,21 +152,27 @@
 
   function renderFilterButtons() {
     const btnContainer = document.getElementById('filter-buttons');
+    btnContainer.innerHTML = ''; // تأكيد مسح الأزرار القديمة قبل الرسم الجديد
+
     if (currentTags.size === 0) return;
+
+    const fragment = document.createDocumentFragment();
 
     const allBtn = document.createElement('button');
     allBtn.className = 'filter-btn active';
     allBtn.innerText = 'All';
     allBtn.onclick = (e) => filterProjects('all', e.target);
-    btnContainer.appendChild(allBtn);
+    fragment.appendChild(allBtn);
 
     currentTags.forEach(tag => {
       const btn = document.createElement('button');
       btn.className = 'filter-btn';
       btn.innerText = tag;
       btn.onclick = (e) => filterProjects(tag, e.target);
-      btnContainer.appendChild(btn);
+      fragment.appendChild(btn);
     });
+
+    btnContainer.appendChild(fragment);
   }
 
   function renderProjects(projects) {
@@ -170,6 +183,8 @@
       grid.innerHTML = '<div class="loading">No projects found in this section.</div>';
       return;
     }
+
+    const fragment = document.createDocumentFragment();
 
     projects.forEach(project => {
       const card = document.createElement('div');
@@ -200,8 +215,10 @@
           ${(!ytEmbedUrl && project.link) ? `<a href="${project.link}" target="_blank" class="project-link">Watch Project</a>` : ''}
         </div>
       `;
-      grid.appendChild(card);
+      fragment.appendChild(card);
     });
+
+    grid.appendChild(fragment);
   }
 
   function filterProjects(selectedTag, btnElement) {
