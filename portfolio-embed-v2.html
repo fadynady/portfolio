@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+  body { background-color: transparent; color: #fff; padding: 0; margin: 0; direction: ltr; }
+
+  /* Header wrapper (tabs + filters) — this is what hides/shows on scroll */
+  .header-bar {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background: rgba(10, 14, 18, 0.45);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    padding: 15px 10px 10px 10px;
+    transition: transform 0.3s ease;
+  }
+  .header-bar.hide-header {
+    transform: translateY(-110%);
+  }
+
+  /* Main Category Tabs */
+  .category-tabs { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin-bottom: 15px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 15px; }
+  .tab-btn { background: #222; color: #ccc; border: 1px solid #444; padding: 8px 18px; border-radius: 8px; cursor: pointer; font-size: 15px; font-weight: 600; transition: 0.3s; }
+  .tab-btn:hover, .tab-btn.active { background: #00adb5; color: #fff; border-color: #00adb5; }
+
+  /* Sub Filter Buttons */
+  .filter-container { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; min-height: 35px; }
+  .filter-btn { background: #1a1a1a; color: #ccc; border: 1px solid #333; padding: 6px 14px; border-radius: 20px; cursor: pointer; transition: 0.3s; font-size: 13px; font-weight: 500; }
+  .filter-btn:hover, .filter-btn.active { background: #fff; color: #000; border-color: #fff; }
+
+  /* Projects Grid — طبيعية، من غير سكرول داخلي منفصل */
+  .projects-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 20px;
+    padding: 20px 10px;
+  }
+
+  /* Project Card */
+  .project-card { background: #181818; border-radius: 12px; overflow: hidden; border: 1px solid #282828; transition: transform 0.3s, opacity 0.3s; display: flex; flex-direction: column; }
+  .project-card.hide { display: none; }
+  .project-card:hover { transform: translateY(-5px); border-color: #00adb5; }
+  
+  /* Media Container */
+  .media-container { width: 100%; height: 180px; background-color: #000; position: relative; }
+  .media-container iframe { width: 100%; height: 100%; border: none; }
+  .project-img { width: 100%; height: 100%; object-fit: cover; }
+
+  .project-info { padding: 15px; flex-grow: 1; display: flex; flex-direction: column; justify-content: space-between; }
+  .project-title { font-size: 17px; margin-bottom: 8px; color: #fff; }
+  .project-desc { font-size: 13px; color: #aaa; margin-bottom: 12px; line-height: 1.4; }
+
+  /* Tags */
+  .tags-container { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+  .tag { background: #222; color: #00adb5; font-size: 11px; padding: 3px 7px; border-radius: 4px; border: 1px solid #333; }
+
+  /* Link Button */
+  .project-link { display: inline-block; text-align: center; background: #00adb5; color: #fff; text-decoration: none; padding: 8px; border-radius: 6px; font-size: 13px; font-weight: bold; transition: 0.2s; margin-top: 8px; }
+  .project-link:hover { background: #008c93; }
+
+  .loading { text-align: center; color: #888; font-size: 15px; padding: 40px; grid-column: 1 / -1; }
+</style>
+</head>
+<body>
+
+  <div class="header-bar" id="header-bar">
+    <!-- Main Category Tabs -->
+    <div class="category-tabs">
+      <button class="tab-btn active" onclick="switchCategory('films', this)">Films</button>
+      <button class="tab-btn" onclick="switchCategory('commercials', this)">Commercials</button>
+      <button class="tab-btn" onclick="switchCategory('animation', this)">Animation</button>
+      <button class="tab-btn" onclick="switchCategory('digital', this)">Digital Content</button>
+      <button class="tab-btn" onclick="switchCategory('tvseries', this)">TV Series</button>
+    </div>
+
+    <!-- Sub Filter Buttons Container -->
+    <div class="filter-container" id="filter-buttons"></div>
+  </div>
+
+  <!-- Projects Grid -->
+  <div class="projects-grid" id="projects-grid">
+    <div class="loading">Loading projects...</div>
+  </div>
+
+<script>
+  const SOURCES = {
+    films: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vT3lI7CWbTBNVNedb2pslWuwMpQsDUYmLyKzwEIXjE0tONBL76OXaYEdJcewNNoBCD2_vC_TA4NGvr9/pub?output=csv',
+    commercials: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRWz6XBCl3Ll4HFk_fOpj-TWhnLJMa2pGB7cP_YU8JRdjRnC4z85dPim8tXcqVP38YJbLL92vZgeI0L/pub?output=csv',
+    animation: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQVoe_ByTaaOOjGJguKMbYRKFB5tGjxALnswTK3DDb0dJHWDUTam8IZiaLIpw8li1QVqYXwR2Co5TD-/pub?output=csv',
+    digital: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRM4YV_5Qj7T000fpqDloePjhittDAT2wzis_ddnJ4Aa6hjuf4yvLLM4-gnEFUH0S2eWMb9LX22bNb-/pub?output=csv',
+    tvseries: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTZMUa4tszkwzA8HDLmzmE_ua3cBmDAaBIj6Akgk0T9hUrjmpCTbqebCF6tWdUBT6NyKmiNhgaVDw1-/pub?output=csv'
+  };
+
+  let currentProjects = [];
+  let currentTags = new Set();
+
+  function getYouTubeEmbedUrl(url) {
+    if (!url) return null;
+    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+    const match = url.match(regExp);
+    return (match && match[2].length === 11) ? `https://www.youtube.com/embed/${match[2]}` : null;
+  }
+
+  function parseCSV(text) {
+    const lines = text.split('\n').filter(line => line.trim() !== '');
+    return lines.slice(1).map(line => {
+      const regex = /(?:,|\n|^)("(?:(?:"")*[^"]*)*"|[^",\n]*|(?:\n|$))/g;
+      const matches = [];
+      let match;
+      while ((match = regex.exec(line)) !== null) {
+        let val = match[1];
+        if (val) val = val.replace(/^"|"$/g, '').replace(/""/g, '"').trim();
+        matches.push(val || '');
+      }
+      return {
+        title: matches[0] || '',
+        image: matches[1] || '',
+        tags: matches[2] ? matches[2].split(',').map(t => t.trim()) : [],
+        description: matches[3] || '',
+        link: matches[4] || ''
+      };
+    });
+  }
+
+  async function loadData(sourceKey) {
+    const grid = document.getElementById('projects-grid');
+    const btnContainer = document.getElementById('filter-buttons');
+    grid.innerHTML = '<div class="loading">Loading projects...</div>';
+    btnContainer.innerHTML = '';
+    currentTags.clear();
+
+    try {
+      const response = await fetch(SOURCES[sourceKey]);
+      const csvText = await response.text();
+      currentProjects = parseCSV(csvText);
+
+      currentProjects.forEach(project => {
+        project.tags.forEach(tag => {
+          if (tag) currentTags.add(tag);
+        });
+      });
+
+      renderFilterButtons();
+      renderProjects(currentProjects);
+    } catch (error) {
+      grid.innerHTML = '<div class="loading">Error loading data.</div>';
+    }
+  }
+
+  function switchCategory(key, btn) {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    loadData(key);
+  }
+
+  function renderFilterButtons() {
+    const btnContainer = document.getElementById('filter-buttons');
+
+    if (currentTags.size === 0) return;
+
+    const allBtn = document.createElement('button');
+    allBtn.className = 'filter-btn active';
+    allBtn.innerText = 'All';
+    allBtn.onclick = (e) => filterProjects('all', e.target);
+    btnContainer.appendChild(allBtn);
+
+    currentTags.forEach(tag => {
+      const btn = document.createElement('button');
+      btn.className = 'filter-btn';
+      btn.innerText = tag;
+      btn.onclick = (e) => filterProjects(tag, e.target);
+      btnContainer.appendChild(btn);
+    });
+  }
+
+  function renderProjects(projects) {
+    const grid = document.getElementById('projects-grid');
+    grid.innerHTML = '';
+
+    if (projects.length === 0) {
+      grid.innerHTML = '<div class="loading">No projects found in this section.</div>';
+      return;
+    }
+
+    projects.forEach(project => {
+      const card = document.createElement('div');
+      card.className = 'project-card';
+      card.dataset.tags = JSON.stringify(project.tags);
+
+      const ytEmbedUrl = getYouTubeEmbedUrl(project.link);
+      let mediaHTML = '';
+
+      if (ytEmbedUrl) {
+        mediaHTML = `<div class="media-container"><iframe src="${ytEmbedUrl}" allowfullscreen></iframe></div>`;
+      } else if (project.image) {
+        mediaHTML = `<div class="media-container"><img src="${project.image}" class="project-img" alt="${project.title}"></div>`;
+      } else {
+        mediaHTML = `<div class="media-container"><img src="https://via.placeholder.com/400x250/222/fff?text=Audio+Project" class="project-img"></div>`;
+      }
+
+      const tagsHTML = project.tags.map(t => `<span class="tag">${t}</span>`).join('');
+
+      card.innerHTML = `
+        ${mediaHTML}
+        <div class="project-info">
+          <div>
+            <h3 class="project-title">${project.title}</h3>
+            <p class="project-desc">${project.description}</p>
+            <div class="tags-container">${tagsHTML}</div>
+          </div>
+          ${(!ytEmbedUrl && project.link) ? `<a href="${project.link}" target="_blank" class="project-link">Watch Project</a>` : ''}
+        </div>
+      `;
+      grid.appendChild(card);
+    });
+  }
+
+  function filterProjects(selectedTag, btnElement) {
+    document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
+    btnElement.classList.add('active');
+
+    const cards = document.querySelectorAll('.project-card');
+    cards.forEach(card => {
+      const cardTags = JSON.parse(card.dataset.tags || '[]');
+      if (selectedTag === 'all' || cardTags.includes(selectedTag)) {
+        card.classList.remove('hide');
+      } else {
+        card.classList.add('hide');
+      }
+    });
+  }
+
+  // ===== Facebook-style header: hide on scroll down, show on scroll up =====
+  let lastScrollY = 0;
+  let upScrollDistance = 0;
+  const HIDE_THRESHOLD = 60;   // لازم تنزل المسافة دي الأول قبل ما الشريط يختفي
+  const SHOW_THRESHOLD = 40;   // لازم تطلع المسافة دي عشان الشريط يظهر تاني (كبّرها لو عايزه يحتاج مسافة أكبر)
+  const headerBar = document.getElementById('header-bar');
+
+  window.addEventListener('scroll', () => {
+    const currentScrollY = window.scrollY;
+    const delta = currentScrollY - lastScrollY;
+
+    if (currentScrollY <= HIDE_THRESHOLD) {
+      // قريب من أول الصفحة خالص -> اظهر الشريط دايمًا
+      headerBar.classList.remove('hide-header');
+      upScrollDistance = 0;
+    } else if (delta > 0) {
+      // بينزل لتحت -> صفّر عداد الطلوع واختفِ الشريط
+      upScrollDistance = 0;
+      headerBar.classList.add('hide-header');
+    } else if (delta < 0) {
+      // بيطلع لفوق -> جمّع المسافة، ولما توصل الحد المطلوب اظهر الشريط
+      upScrollDistance += -delta;
+      if (upScrollDistance > SHOW_THRESHOLD) {
+        headerBar.classList.remove('hide-header');
+      }
+    }
+
+    lastScrollY = currentScrollY <= 0 ? 0 : currentScrollY;
+  }, { passive: true });
+
+  // Load default category (Films)
+  loadData('films');
+</script>
+
+</body>
+</html>
