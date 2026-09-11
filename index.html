@@ -1,84 +1,71 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<style>
-  * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-  body { background-color: transparent; color: #fff; padding: 0; margin: 0; direction: ltr; }
+  <meta charset="UTF-8">
+  <!-- السطر ده هو اللي بيخلي الصفحة Responsive وتتظبط على الموبايل -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Fady Nady - Audio Portfolio</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+    body { background-color: #121212; color: #fff; padding: 15px; direction: ltr; min-height: 100vh; }
 
-  /* Header wrapper (tabs + filters) — this is what hides/shows on scroll */
-  .header-bar {
-    position: sticky;
-    top: 0;
-    z-index: 10;
-    background: rgba(10, 14, 18, 0.45);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    padding: 15px 10px 10px 10px;
-    transition: transform 0.3s ease;
-  }
-  .header-bar.hide-header {
-    transform: translateY(-110%);
-  }
+    /* Main Category Tabs */
+    .category-tabs { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin-bottom: 20px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 15px; }
+    .tab-btn { background: #222; color: #ccc; border: 1px solid #444; padding: 10px 16px; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 600; transition: 0.3s; flex: 1 1 auto; max-width: 150px; text-align: center; }
+    .tab-btn:hover, .tab-btn.active { background: #00adb5; color: #fff; border-color: #00adb5; }
 
-  /* Main Category Tabs */
-  .category-tabs { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin-bottom: 15px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 15px; }
-  .tab-btn { background: #222; color: #ccc; border: 1px solid #444; padding: 8px 18px; border-radius: 8px; cursor: pointer; font-size: 15px; font-weight: 600; transition: 0.3s; }
-  .tab-btn:hover, .tab-btn.active { background: #00adb5; color: #fff; border-color: #00adb5; }
+    /* Sub Filter Buttons */
+    .filter-container { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 25px; justify-content: center; min-height: 35px; }
+    .filter-btn { background: #1a1a1a; color: #ccc; border: 1px solid #333; padding: 6px 12px; border-radius: 20px; cursor: pointer; transition: 0.3s; font-size: 12px; font-weight: 500; }
+    .filter-btn:hover, .filter-btn.active { background: #fff; color: #000; border-color: #fff; }
 
-  /* Sub Filter Buttons */
-  .filter-container { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; min-height: 35px; }
-  .filter-btn { background: #1a1a1a; color: #ccc; border: 1px solid #333; padding: 6px 14px; border-radius: 20px; cursor: pointer; transition: 0.3s; font-size: 13px; font-weight: 500; }
-  .filter-btn:hover, .filter-btn.active { background: #fff; color: #000; border-color: #fff; }
+    /* Projects Grid */
+    .projects-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; }
+    
+    /* Project Card */
+    .project-card { background: #181818; border-radius: 12px; overflow: hidden; border: 1px solid #282828; transition: transform 0.3s, opacity 0.3s; display: flex; flex-direction: column; }
+    .project-card.hide { display: none; }
+    
+    /* Media Container */
+    .media-container { width: 100%; height: 180px; background-color: #000; position: relative; }
+    .media-container iframe { width: 100%; height: 100%; border: none; }
+    .project-img { width: 100%; height: 100%; object-fit: cover; }
 
-  /* Projects Grid — طبيعية، من غير سكرول داخلي منفصل */
-  .projects-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-    gap: 20px;
-    padding: 20px 10px;
-  }
+    .project-info { padding: 15px; flex-grow: 1; display: flex; flex-direction: column; justify-content: space-between; }
+    .project-title { font-size: 16px; margin-bottom: 8px; color: #fff; }
+    .project-desc { font-size: 13px; color: #aaa; margin-bottom: 12px; line-height: 1.4; }
 
-  /* Project Card */
-  .project-card { background: #181818; border-radius: 12px; overflow: hidden; border: 1px solid #282828; transition: transform 0.3s, opacity 0.3s; display: flex; flex-direction: column; }
-  .project-card.hide { display: none; }
-  .project-card:hover { transform: translateY(-5px); border-color: #00adb5; }
-  
-  /* Media Container */
-  .media-container { width: 100%; height: 180px; background-color: #000; position: relative; }
-  .media-container iframe { width: 100%; height: 100%; border: none; }
-  .project-img { width: 100%; height: 100%; object-fit: cover; }
+    /* Tags */
+    .tags-container { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+    .tag { background: #222; color: #00adb5; font-size: 11px; padding: 3px 7px; border-radius: 4px; border: 1px solid #333; }
 
-  .project-info { padding: 15px; flex-grow: 1; display: flex; flex-direction: column; justify-content: space-between; }
-  .project-title { font-size: 17px; margin-bottom: 8px; color: #fff; }
-  .project-desc { font-size: 13px; color: #aaa; margin-bottom: 12px; line-height: 1.4; }
+    /* Link Button */
+    .project-link { display: inline-block; text-align: center; background: #00adb5; color: #fff; text-decoration: none; padding: 8px; border-radius: 6px; font-size: 13px; font-weight: bold; transition: 0.2s; margin-top: 8px; }
+    .project-link:hover { background: #008c93; }
 
-  /* Tags */
-  .tags-container { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
-  .tag { background: #222; color: #00adb5; font-size: 11px; padding: 3px 7px; border-radius: 4px; border: 1px solid #333; }
+    .loading { text-align: center; color: #888; font-size: 15px; padding: 40px; grid-column: 1 / -1; }
 
-  /* Link Button */
-  .project-link { display: inline-block; text-align: center; background: #00adb5; color: #fff; text-decoration: none; padding: 8px; border-radius: 6px; font-size: 13px; font-weight: bold; transition: 0.2s; margin-top: 8px; }
-  .project-link:hover { background: #008c93; }
-
-  .loading { text-align: center; color: #888; font-size: 15px; padding: 40px; grid-column: 1 / -1; }
-</style>
+    /* تعديلات مخصصة للشاشات الصغيرة */
+    @media (max-width: 600px) {
+      body { padding: 10px; }
+      .projects-grid { grid-template-columns: 1fr; } /* كارت واحد في الصف للموبايل */
+      .tab-btn { font-size: 13px; padding: 8px 12px; }
+    }
+  </style>
 </head>
 <body>
 
-  <div class="header-bar" id="header-bar">
-    <!-- Main Category Tabs -->
-    <div class="category-tabs">
-      <button class="tab-btn active" onclick="switchCategory('films', this)">Films</button>
-      <button class="tab-btn" onclick="switchCategory('commercials', this)">Commercials</button>
-      <button class="tab-btn" onclick="switchCategory('animation', this)">Animation</button>
-      <button class="tab-btn" onclick="switchCategory('digital', this)">Digital Content</button>
-      <button class="tab-btn" onclick="switchCategory('tvseries', this)">TV Series</button>
-    </div>
-
-    <!-- Sub Filter Buttons Container -->
-    <div class="filter-container" id="filter-buttons"></div>
+  <!-- Main Category Tabs -->
+  <div class="category-tabs">
+    <button class="tab-btn active" onclick="switchCategory('films', this)">Films</button>
+    <button class="tab-btn" onclick="switchCategory('commercials', this)">Commercials</button>
+    <button class="tab-btn" onclick="switchCategory('animation', this)">Animation</button>
+    <button class="tab-btn" onclick="switchCategory('digital', this)">Digital Content</button>
+    <button class="tab-btn" onclick="switchCategory('tvseries', this)">TV Series</button>
   </div>
+
+  <!-- Sub Filter Buttons Container -->
+  <div class="filter-container" id="filter-buttons"></div>
 
   <!-- Projects Grid -->
   <div class="projects-grid" id="projects-grid">
@@ -158,7 +145,6 @@
 
   function renderFilterButtons() {
     const btnContainer = document.getElementById('filter-buttons');
-
     if (currentTags.size === 0) return;
 
     const allBtn = document.createElement('button');
@@ -233,37 +219,6 @@
     });
   }
 
-  // ===== Facebook-style header: hide on scroll down, show on scroll up =====
-  let lastScrollY = 0;
-  let upScrollDistance = 0;
-  const HIDE_THRESHOLD = 60;   // لازم تنزل المسافة دي الأول قبل ما الشريط يختفي
-  const SHOW_THRESHOLD = 40;   // لازم تطلع المسافة دي عشان الشريط يظهر تاني (كبّرها لو عايزه يحتاج مسافة أكبر)
-  const headerBar = document.getElementById('header-bar');
-
-  window.addEventListener('scroll', () => {
-    const currentScrollY = window.scrollY;
-    const delta = currentScrollY - lastScrollY;
-
-    if (currentScrollY <= HIDE_THRESHOLD) {
-      // قريب من أول الصفحة خالص -> اظهر الشريط دايمًا
-      headerBar.classList.remove('hide-header');
-      upScrollDistance = 0;
-    } else if (delta > 0) {
-      // بينزل لتحت -> صفّر عداد الطلوع واختفِ الشريط
-      upScrollDistance = 0;
-      headerBar.classList.add('hide-header');
-    } else if (delta < 0) {
-      // بيطلع لفوق -> جمّع المسافة، ولما توصل الحد المطلوب اظهر الشريط
-      upScrollDistance += -delta;
-      if (upScrollDistance > SHOW_THRESHOLD) {
-        headerBar.classList.remove('hide-header');
-      }
-    }
-
-    lastScrollY = currentScrollY <= 0 ? 0 : currentScrollY;
-  }, { passive: true });
-
-  // Load default category (Films)
   loadData('films');
 </script>
 
