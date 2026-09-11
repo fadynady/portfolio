@@ -38,7 +38,7 @@
     .tags-container { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
     .tag { background: #222; color: #00adb5; font-size: 11px; padding: 3px 8px; border-radius: 4px; border: 1px solid #333; font-weight: 600; }
     
-    /* ستايل فرعي للنص المكتوب بين أقواس جوة التاج ليظهر بخط أرفع */
+    /* ستايل النص المكتوب بين أقواس جوة التاج الكارت ليظهر بخط أرفع */
     .tag-subtext { font-weight: 300; opacity: 0.85; margin-left: 3px; font-size: 0.95em; color: #a5ebed; }
 
     /* Link Button */
@@ -83,8 +83,8 @@
   };
 
   let currentProjects = [];
-  let currentTags = new Set();
-  let currentRequestId = 0; // يمنع تداخل الطلبات السريعة
+  let rawTagsSet = new Set();
+  let currentRequestId = 0;
 
   function getYouTubeEmbedUrl(url) {
     if (!url) return null;
@@ -120,21 +120,20 @@
     const btnContainer = document.getElementById('filter-buttons');
     
     grid.innerHTML = '<div class="loading">Loading projects...</div>';
-    btnContainer.innerHTML = ''; // تفريغ كامل لمنع التكرار
-    currentTags.clear();
+    btnContainer.innerHTML = '';
+    rawTagsSet.clear();
 
     try {
       const response = await fetch(SOURCES[sourceKey]);
       const csvText = await response.text();
       
-      // لو المستخدم داس على زرار تاني قبل ما ده يخلص، نلغي القديم
       if (requestId !== currentRequestId) return;
 
       currentProjects = parseCSV(csvText);
 
       currentProjects.forEach(project => {
         project.tags.forEach(tag => {
-          if (tag) currentTags.add(tag);
+          if (tag) rawTagsSet.add(tag);
         });
       });
 
@@ -155,9 +154,18 @@
 
   function renderFilterButtons() {
     const btnContainer = document.getElementById('filter-buttons');
-    btnContainer.innerHTML = ''; // تأكيد مسح الأزرار القديمة قبل الرسم الجديد
+    btnContainer.innerHTML = '';
 
-    if (currentTags.size === 0) return;
+    if (rawTagsSet.size === 0) return;
+
+    // استخراج أسماء الفلاتر بدون الأقواس لمنع ظهورها في الأزرار فوق
+    const cleanTagsMap = new Map();
+    rawTagsSet.forEach(rawTag => {
+      const cleanName = rawTag.replace(/\s*\(.*?\)/g, '').trim();
+      if (cleanName && !cleanTagsMap.has(cleanName)) {
+        cleanTagsMap.set(cleanName, cleanName);
+      }
+    });
 
     const fragment = document.createDocumentFragment();
 
@@ -167,11 +175,11 @@
     allBtn.onclick = (e) => filterProjects('all', e.target);
     fragment.appendChild(allBtn);
 
-    currentTags.forEach(tag => {
+    cleanTagsMap.forEach((cleanName) => {
       const btn = document.createElement('button');
       btn.className = 'filter-btn';
-      btn.innerText = tag;
-      btn.onclick = (e) => filterProjects(tag, e.target);
+      btn.innerText = cleanName; // يعرض الاسم النضيف فقط فوق
+      btn.onclick = (e) => filterProjects(cleanName, e.target);
       fragment.appendChild(btn);
     });
 
@@ -192,7 +200,10 @@
     projects.forEach(project => {
       const card = document.createElement('div');
       card.className = 'project-card';
-      card.dataset.tags = JSON.stringify(project.tags);
+
+      // تخزين التاجات الخام والتاجات المنظفة للربط المباشر مع الفلاتر
+      const cleanCardTags = project.tags.map(t => t.replace(/\s*\(.*?\)/g, '').trim());
+      card.dataset.cleanTags = JSON.stringify(cleanCardTags);
 
       const ytEmbedUrl = getYouTubeEmbedUrl(project.link);
       let mediaHTML = '';
@@ -205,7 +216,7 @@
         mediaHTML = `<div class="media-container"><img src="https://via.placeholder.com/400x250/222/fff?text=Audio+Project" class="project-img"></div>`;
       }
 
-      // تنسيق التاج بحيث يجعل أي نص بين أقواس بخط أرفع تلقائياً
+      // تحويل النص داخل الأقواس لشكل أرفع على الفيديو/الكارت فقط
       const tagsHTML = project.tags.map(t => {
         const formattedTag = t.replace(/\((.*?)\)/g, '<span class="tag-subtext">($1)</span>');
         return `<span class="tag">${formattedTag}</span>`;
@@ -228,14 +239,14 @@
     grid.appendChild(fragment);
   }
 
-  function filterProjects(selectedTag, btnElement) {
+  function filterProjects(selectedCleanTag, btnElement) {
     document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
     btnElement.classList.add('active');
 
     const cards = document.querySelectorAll('.project-card');
     cards.forEach(card => {
-      const cardTags = JSON.parse(card.dataset.tags || '[]');
-      if (selectedTag === 'all' || cardTags.includes(selectedTag)) {
+      const cardCleanTags = JSON.parse(card.dataset.cleanTags || '[]');
+      if (selectedCleanTag === 'all' || cardCleanTags.includes(selectedCleanTag)) {
         card.classList.remove('hide');
       } else {
         card.classList.add('hide');
