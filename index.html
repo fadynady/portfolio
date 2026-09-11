@@ -58,7 +58,8 @@
 
   <!-- Main Category Tabs -->
   <div class="category-tabs">
-    <button class="tab-btn active" onclick="switchCategory('films', this)">Films</button>
+    <button class="tab-btn active" onclick="switchCategory('all', this)">All</button>
+    <button class="tab-btn" onclick="switchCategory('films', this)">Films</button>
     <button class="tab-btn" onclick="switchCategory('commercials', this)">Commercials</button>
     <button class="tab-btn" onclick="switchCategory('animation', this)">Animation</button>
     <button class="tab-btn" onclick="switchCategory('digital', this)">Digital Content</button>
@@ -114,6 +115,17 @@
     });
   }
 
+  async function fetchSingleCSV(url) {
+    try {
+      const response = await fetch(url);
+      const csvText = await response.text();
+      return parseCSV(csvText);
+    } catch (e) {
+      console.error('Error fetching CSV:', url, e);
+      return [];
+    }
+  }
+
   async function loadData(sourceKey) {
     const requestId = ++currentRequestId;
     const grid = document.getElementById('projects-grid');
@@ -124,12 +136,16 @@
     rawTagsSet.clear();
 
     try {
-      const response = await fetch(SOURCES[sourceKey]);
-      const csvText = await response.text();
-      
-      if (requestId !== currentRequestId) return;
-
-      currentProjects = parseCSV(csvText);
+      if (sourceKey === 'all') {
+        const urls = Object.values(SOURCES);
+        const results = await Promise.all(urls.map(url => fetchSingleCSV(url)));
+        if (requestId !== currentRequestId) return;
+        currentProjects = results.flat();
+      } else {
+        const projects = await fetchSingleCSV(SOURCES[sourceKey]);
+        if (requestId !== currentRequestId) return;
+        currentProjects = projects;
+      }
 
       currentProjects.forEach(project => {
         project.tags.forEach(tag => {
@@ -158,7 +174,6 @@
 
     if (rawTagsSet.size === 0) return;
 
-    // استخراج أسماء الفلاتر بدون الأقواس لمنع ظهورها في الأزرار فوق
     const cleanTagsMap = new Map();
     rawTagsSet.forEach(rawTag => {
       const cleanName = rawTag.replace(/\s*\(.*?\)/g, '').trim();
@@ -178,7 +193,7 @@
     cleanTagsMap.forEach((cleanName) => {
       const btn = document.createElement('button');
       btn.className = 'filter-btn';
-      btn.innerText = cleanName; // يعرض الاسم النضيف فقط فوق
+      btn.innerText = cleanName;
       btn.onclick = (e) => filterProjects(cleanName, e.target);
       fragment.appendChild(btn);
     });
@@ -201,7 +216,6 @@
       const card = document.createElement('div');
       card.className = 'project-card';
 
-      // تخزين التاجات الخام والتاجات المنظفة للربط المباشر مع الفلاتر
       const cleanCardTags = project.tags.map(t => t.replace(/\s*\(.*?\)/g, '').trim());
       card.dataset.cleanTags = JSON.stringify(cleanCardTags);
 
@@ -216,7 +230,6 @@
         mediaHTML = `<div class="media-container"><img src="https://via.placeholder.com/400x250/222/fff?text=Audio+Project" class="project-img"></div>`;
       }
 
-      // تحويل النص داخل الأقواس لشكل أرفع على الفيديو/الكارت فقط
       const tagsHTML = project.tags.map(t => {
         const formattedTag = t.replace(/\((.*?)\)/g, '<span class="tag-subtext">($1)</span>');
         return `<span class="tag">${formattedTag}</span>`;
@@ -254,7 +267,8 @@
     });
   }
 
-  loadData('films');
+  // التحميل الافتراضي عند فتح الصفحة
+  loadData('all');
 </script>
 
 </body>
